@@ -52,6 +52,7 @@ private:
 
 public:
    Graph();
+   Graph( char* fileName);
    void addNode(unsigned int nodeNumber);
    void removeNode(unsigned int nodeNumber);
    void setNodeValue(unsigned int nodeNumber, unsigned int cost);
@@ -70,7 +71,6 @@ public:
    void setNodeVisited(unsigned int nodeNumber);
    void doDijkstra( unsigned int originNode, unsigned int destNode, std::list<unsigned int> *pathResult, int &pathCost);
    void doPrim( unsigned int originNode);
-   void getGraphFromFile( char* fileName);
 
    void printGraph();
 };
@@ -468,7 +468,7 @@ void Graph::printGraph()
 
 }
 
-void Graph::getGraphFromFile(char *fileName)
+Graph::Graph(char *fileName)
 {
 
    int graphSize;
@@ -482,29 +482,80 @@ void Graph::getGraphFromFile(char *fileName)
 
    std::cout << " graph size is " << graphSize << " nodes" << std::endl;
 
-   while(!filestream.eof())
+   while(true)
    {    
       unsigned int node1, node2, cost;
-      filestream >> node1;
-      filestream >> node2;
-      filestream >> cost;
+      
+      // collect a edge data
+      filestream >> node1 >> node2 >> cost;
+
+      // only read with the input is valid
+      if(filestream.eof()) break;
 
       std::cout << "node1: " << node1 << " node2: " << node2 << " cost: " << cost << std::endl;
-      G.addNode(node1);       // these addNode calls are idempotent 
-      G.addNode(node2);
-      G.addEdge(node1, node2 , cost);
+      addNode(node1);       // these addNode calls are idempotent 
+      addNode(node2);
+      addEdge(node1, node2 , cost);
    }
 }
 
 // a type which defines a conceptual two dimensional vector of ints (or at least can be addressed as such)
 typedef typename std::vector< std::vector<int> > mst_result;
 
+typedef typename std::map<unsigned int, unsigned int> edge_type;
+
+// a type which describes a node in the graph
+typedef typename std::map< int, graphPoint* > node_type;
+
+const int NODENUM_IDX = 0;
+const int EDGEWEIGHT_IDX = 1;
+
 void Graph::doPrim( unsigned int originNode)
 {
+
+   int i;
    // initialize the 2d vector of [numNodes][2] ints. (nodenumber, weight) will be stored as we compute the prim solution
    mst_result mst_for_graph(m_totalNumVerticies, std::vector<int> (2));
 
+   // initialize the solution 
+   for(i=0; i<m_totalNumVerticies; i++)
+   {
+      mst_for_graph[0][NODENUM_IDX]=(-1);
+   }
 
+   // add the origin node to the solved set
+   mst_for_graph[0][NODENUM_IDX] = originNode;
+   mst_for_graph[0][EDGEWEIGHT_IDX] = 0;
+   int solution_points_found=1;
+
+    // now build the MST while iterating through the graph
+   for(i=(m_totalNumVerticies-1); i>0; i++)
+   {
+      for(int j=0; j<solution_points_found; j++)
+      {
+         unsigned int lowest_cost_edge_this_iteration = 100; // a cost higher than the highest known egde value
+         unsigned int lowest_cost_node_this_iteration = -1;
+
+         // find the node info for the node being examined (this lookup cannot fail)
+         node_type::iterator itNode=graphNodes.find(mst_for_graph[j][NODENUM_IDX]);
+
+         // look through the edges of all the nodes in the solution so far
+         for(edge_type::iterator itEdge=itNode->second->m_edges.begin(); itEdge != itNode->second->m_edges.end(); ++itEdge)
+         {
+            // make sure this node is not already in the solution
+
+            // now check if its the lowest cost 
+            if((itEdge->second) < lowest_cost_edge_this_iteration)
+            {
+               lowest_cost_edge_this_iteration = itEdge->second;
+               lowest_cost_node_this_iteration = itEdge->first;
+            }
+         }
+      }
+
+      // add a newly found lowest node to the solution
+
+   }
 }
 
 void Graph::doDijkstra( unsigned int originNode, unsigned int destNode, std::list<unsigned int> *pathList, int &pathCost)
@@ -823,9 +874,7 @@ std::ostream &operator<< (std::ostream &cout, std::list<unsigned int> *path)
 
     char print_graph_entry;
 
-    Graph G; // a new graph G
-
-    G.getGraphFromFile("graph.txt");
+    Graph G(const_cast<char *>("graph.txt")); // a new graph G
 
     G.doPrim(0);
 
