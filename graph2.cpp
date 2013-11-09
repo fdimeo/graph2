@@ -416,31 +416,31 @@ int Graph::getEdgeValue(unsigned int sourceNodeNumber,unsigned int destNodeNumbe
    return retval;
 }
 
-// bool Graph::isNodeVisited(unsigned int nodeNumber)
-// {
+bool Graph::isNodeVisited(unsigned int nodeNumber)
+{
 
-//    bool retval = false;
-//    std::map<int, graphPoint* >::iterator it = graphNodes.find(nodeNumber);
+   bool retval = false;
+   std::map<int, graphPoint* >::iterator it = graphNodes.find(nodeNumber);
 
-//    if( it != graphNodes.end())
-//    {
-//       retval = it->second->getVisited();
-//    }
+   if( it != graphNodes.end())
+   {
+      retval = it->second->getVisited();
+   }
 
-//    return retval;
+   return retval;
 
-// }
+}
 
-// void Graph::setNodeVisited(unsigned int nodeNumber)
-// {
-//    std::map<int, graphPoint* >::iterator it = graphNodes.find(nodeNumber);
+void Graph::setNodeVisited(unsigned int nodeNumber)
+{
+   std::map<int, graphPoint* >::iterator it = graphNodes.find(nodeNumber);
 
-//    if( it != graphNodes.end())
-//    {
-//       it->second->setVisited();
-//    }
+   if( it != graphNodes.end())
+   {
+      it->second->setVisited();
+   }
 
-// }
+}
 
 
 unsigned int Graph::getNodeCount()
@@ -534,6 +534,8 @@ void Graph::doPrim( unsigned int originNode)
    // add the origin node to the solved set
    mst_for_graph[0][NODENUM_IDX] = originNode;
    mst_for_graph[0][EDGEWEIGHT_IDX] = 0;
+   setNodeVisited(originNode);
+
    int solution_points_found=1;
 
     // now build the MST while iterating through the graph
@@ -559,31 +561,21 @@ void Graph::doPrim( unsigned int originNode)
          // look through the edges of all the nodes in the solution so far
          for(edge_type::iterator itEdge=itNode->second->m_edges.begin(); itEdge != itNode->second->m_edges.end(); ++itEdge)
          {
-            bool node_found_in_solution = false;
-
             std::cout << "found edge to other node: " << itEdge->first << std::endl;
             // std::cin >> debug;
             
-            // make sure this node is not already in the solution
-            for(int sol=0; (sol<m_totalNumVerticies) && (mst_for_graph[sol][NODENUM_IDX] != (-1)); sol++)
-            {
 
-                if(mst_for_graph[sol][NODENUM_IDX] == itEdge->first)
-               {
+            if(isNodeVisited(itEdge->first))
+            {
                   std::cout << "***node is already in solution, skipping" << std::endl;
-                  node_found_in_solution = true;
-                  break;
-               }
+                  continue;
             }
 
-            if(node_found_in_solution==false)
-            {
-               std::cout << "now checking if this is the lowest cost: " << (itEdge->second) << std::endl;
-               std::cout << "lowest_cost_edge_this_iteration: " << lowest_cost_edge_this_iteration << std::endl;
-            }
+            std::cout << "now checking if this is the lowest cost: " << (itEdge->second) << std::endl;
+            std::cout << "lowest_cost_edge_this_iteration: " << lowest_cost_edge_this_iteration << std::endl;
 
             // now check if its the lowest cost 
-            if((node_found_in_solution==false) && ((itEdge->second) < lowest_cost_edge_this_iteration))
+            if((itEdge->second) < lowest_cost_edge_this_iteration)
             {
                std::cout << "**new lowest code node found: Node: " << itEdge->first << " cost: " << itEdge->second << std::endl;
                lowest_cost_edge_this_iteration = itEdge->second;
@@ -599,6 +591,7 @@ void Graph::doPrim( unsigned int originNode)
       // add a newly found lowest node to the solution
       mst_for_graph[solution_points_found][NODENUM_IDX] = lowest_cost_node_this_iteration;
       mst_for_graph[solution_points_found][EDGEWEIGHT_IDX] = lowest_cost_edge_this_iteration;
+      setNodeVisited(lowest_cost_node_this_iteration);
 
       solution_points_found++;
 
@@ -610,7 +603,7 @@ void Graph::doPrim( unsigned int originNode)
 
    for(i=0; i<solution_points_found; i++)
    {
-      std::cout << "Node: " << mst_for_graph[i][NODENUM_IDX] 
+      std::cout << "Node: " << mst_for_graph[i][NODENUM_IDX]  << "  \t"
                << " Cost: " << mst_for_graph[i][EDGEWEIGHT_IDX] <<std::endl;
       mst_total_cost += mst_for_graph[i][EDGEWEIGHT_IDX];
    }
