@@ -471,8 +471,11 @@ void Graph::printGraph()
 Graph::Graph(char *fileName)
 {
 
+   m_totalNumVerticies = 0;
+   m_totalNumEdges = 0;
+
    int graphSize;
-    
+   
    // read the graph from a file.
    // the first int is the size, and followed by tuples of int node1, int node2, int cost
    // open the graph file for read only
@@ -513,14 +516,19 @@ const int EDGEWEIGHT_IDX = 1;
 void Graph::doPrim( unsigned int originNode)
 {
 
+   int debug;
    int i;
    // initialize the 2d vector of [numNodes][2] ints. (nodenumber, weight) will be stored as we compute the prim solution
    mst_result mst_for_graph(m_totalNumVerticies, std::vector<int> (2));
 
+   std::cout << "Starting Prim MST algorithm for " << m_totalNumVerticies << " nodes...";
+
+   // std::cin >> debug;
+
    // initialize the solution 
    for(i=0; i<m_totalNumVerticies; i++)
    {
-      mst_for_graph[0][NODENUM_IDX]=(-1);
+      mst_for_graph[i][NODENUM_IDX]=(-1);
    }
 
    // add the origin node to the solved set
@@ -529,33 +537,86 @@ void Graph::doPrim( unsigned int originNode)
    int solution_points_found=1;
 
     // now build the MST while iterating through the graph
-   for(i=(m_totalNumVerticies-1); i>0; i++)
+   for(i=(m_totalNumVerticies-1); i>0; i--)
    {
+      unsigned int lowest_cost_edge_this_iteration = 100; // the lowest cost and node for this iteration
+      unsigned int lowest_cost_node_this_iteration = (-1);
+
+      std::cout << "iterating through the mst solution " << i << " more nodes left in graph" << std::endl;
+      // std::cin >> debug;
+
       for(int j=0; j<solution_points_found; j++)
       {
-         unsigned int lowest_cost_edge_this_iteration = 100; // a cost higher than the highest known egde value
-         unsigned int lowest_cost_node_this_iteration = -1;
+         std::cout << "looking at solution location " << j << " node: " << mst_for_graph[j][NODENUM_IDX] << std::endl;
+         // std::cin >> debug;
 
          // find the node info for the node being examined (this lookup cannot fail)
          node_type::iterator itNode=graphNodes.find(mst_for_graph[j][NODENUM_IDX]);
+        
+         std::cout << "examining the edges connected to node: " << itNode->second->m_nodeNumber << std::endl;
+         // std::cin >> debug;
 
          // look through the edges of all the nodes in the solution so far
          for(edge_type::iterator itEdge=itNode->second->m_edges.begin(); itEdge != itNode->second->m_edges.end(); ++itEdge)
          {
+            bool node_found_in_solution = false;
+
+            std::cout << "found edge to other node: " << itEdge->first << std::endl;
+            // std::cin >> debug;
+            
             // make sure this node is not already in the solution
+            for(int sol=0; (sol<m_totalNumVerticies) && (mst_for_graph[sol][NODENUM_IDX] != (-1)); sol++)
+            {
+
+                if(mst_for_graph[sol][NODENUM_IDX] == itEdge->first)
+               {
+                  std::cout << "***node is already in solution, skipping" << std::endl;
+                  node_found_in_solution = true;
+                  break;
+               }
+            }
+
+            if(node_found_in_solution==false)
+            {
+               std::cout << "now checking if this is the lowest cost: " << (itEdge->second) << std::endl;
+               std::cout << "lowest_cost_edge_this_iteration: " << lowest_cost_edge_this_iteration << std::endl;
+            }
 
             // now check if its the lowest cost 
-            if((itEdge->second) < lowest_cost_edge_this_iteration)
+            if((node_found_in_solution==false) && ((itEdge->second) < lowest_cost_edge_this_iteration))
             {
+               std::cout << "**new lowest code node found: Node: " << itEdge->first << " cost: " << itEdge->second << std::endl;
                lowest_cost_edge_this_iteration = itEdge->second;
                lowest_cost_node_this_iteration = itEdge->first;
             }
          }
       }
 
+      std::cout << "\n==== adding node " << lowest_cost_node_this_iteration << " to solution" << " with a cost of "
+                << lowest_cost_edge_this_iteration << std::endl;
+      // std::cin >> debug;
+
       // add a newly found lowest node to the solution
+      mst_for_graph[solution_points_found][NODENUM_IDX] = lowest_cost_node_this_iteration;
+      mst_for_graph[solution_points_found][EDGEWEIGHT_IDX] = lowest_cost_edge_this_iteration;
+
+      solution_points_found++;
 
    }
+
+   std::cout << "----------- MST path ---------------" << std::endl;
+
+   unsigned int mst_total_cost = 0;
+
+   for(i=0; i<solution_points_found; i++)
+   {
+      std::cout << "Node: " << mst_for_graph[i][NODENUM_IDX] 
+               << " Cost: " << mst_for_graph[i][EDGEWEIGHT_IDX] <<std::endl;
+      mst_total_cost += mst_for_graph[i][EDGEWEIGHT_IDX];
+   }
+
+   std::cout << "Total MST cost: " << mst_total_cost << std::endl;
+
 }
 
 void Graph::doDijkstra( unsigned int originNode, unsigned int destNode, std::list<unsigned int> *pathList, int &pathCost)
@@ -875,6 +936,8 @@ std::ostream &operator<< (std::ostream &cout, std::list<unsigned int> *path)
     char print_graph_entry;
 
     Graph G(const_cast<char *>("graph.txt")); // a new graph G
+    
+    std::cout << "start prim" << std::endl;
 
     G.doPrim(0);
 
